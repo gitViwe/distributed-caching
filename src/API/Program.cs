@@ -1,3 +1,4 @@
+using gitViwe.Shared;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
 using System.Text;
@@ -5,6 +6,7 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddStackExchangeRedisCache(options =>
 {
@@ -26,16 +28,24 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapGet("/set-value", async ([FromServices] IDistributedCache redis) =>
+app.MapGet("/url/shorten", async ([FromServices] IDistributedCache redis, [FromServices] IHttpContextAccessor context, string url) =>
 {
+    string shortUrl = context.HttpContext!.Request.Host.Value + "/" + Conversion.RandomString(7);
 
-    await redis.SetAsync("my-key", Encoding.UTF8.GetBytes("my-value"), CancellationToken.None);
+    await redis.SetAsync(shortUrl, Encoding.UTF8.GetBytes(url), CancellationToken.None);
 
-    var response = await redis.GetAsync("my-key", CancellationToken.None);
+    return shortUrl;
+})
+.WithName("ShortedUrl")
+.WithOpenApi();
+
+app.MapGet("/url/get-original", async ([FromServices] IDistributedCache redis, string shortUrl) =>
+{
+    var response = await redis.GetAsync(shortUrl, CancellationToken.None);
 
     return Encoding.UTF8.GetString(response!);
 })
-.WithName("GetWeatherForecast")
+.WithName("GetUrl")
 .WithOpenApi();
 
 app.Run();
