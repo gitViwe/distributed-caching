@@ -3,14 +3,6 @@
 
 A distributed cache is a cache shared by multiple app servers, typically maintained as an external service to the app servers that access it. A distributed cache can improve the performance and scalability of an ASP.NET Core app, especially when the app is hosted by a cloud service or a server farm.
 
-A distributed cache has several advantages over other caching scenarios where cached data is stored on individual app servers.
-
-When cached data is distributed, the data:
-
-Is coherent (consistent) across requests to multiple servers.
-Survives server restarts and app deployments.
-Doesn't use local memory.
-
 
 <!-- GETTING STARTED -->
 ## Getting Started
