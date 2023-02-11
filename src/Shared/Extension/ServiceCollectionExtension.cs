@@ -14,7 +14,22 @@ public static class ServiceCollectionExtension
             .AddStackExchangeRedisCache(options =>
             {
                 options.Configuration = configuration.GetConnectionString("Redis");
-                options.InstanceName = "redis_demo";
+                options.InstanceName = configuration["RedisDistributedCacheOption:InstanceName"];
+            });
+    }
+
+    public static IServiceCollection RegisterRedisCache(this IServiceCollection services, Action<RedisDistributedCacheOption> options)
+    {
+        var optionValue = new RedisDistributedCacheOption();
+        options(optionValue);
+
+        return services.Configure(options)
+            .AddTransient<IRedisDistributedCache, RedisDistributedCache>()
+            .AddSingleton<RedisDistributedCacheOption>()
+            .AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = optionValue.Configuration;
+                options.InstanceName = optionValue.InstanceName;
             });
     }
 }
