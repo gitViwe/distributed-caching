@@ -10,7 +10,7 @@ builder.Services.AddDistributedMemoryCache();
 builder.Services.AddTransient<IRedisDistributedCache, RedisDistributedCache>();
 builder.Services.AddStackExchangeRedisCache(options =>
 {
-    options.Configuration = "localhost:6379";
+    options.Configuration = Environment.GetEnvironmentVariable("REDIS_CONNECTION") ?? "localhost:6379";
     options.InstanceName = "redis_demo";
 });
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -20,7 +20,7 @@ builder.Services.AddSwaggerGen();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Docker"))
 {
     app.UseSwagger();
     app.UseSwaggerUI();
@@ -44,7 +44,7 @@ app.MapGet("/url/shorten", async ([FromServices] IRedisDistributedCache redis, [
 
 app.MapGet("/url/get/{key}", async ([FromServices] IRedisDistributedCache redis, string key) =>
 {
-    string value = await redis.GetAsync(key);
+    string value = await redis.GetAsync(key) ?? string.Empty;
     return value;
 })
 .WithName("GetUrl")

@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.Caching.Distributed;
-
-namespace Shared;
+﻿namespace Shared;
 
 public interface IRedisDistributedCache
 {
