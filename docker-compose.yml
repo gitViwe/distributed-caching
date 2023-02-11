@@ -6,6 +6,19 @@ volumes:
 
 services:
 
+  urlshortner-api:
+    image: hubviwe/urlshortner.api:1.0.0
+    container_name: urlshortner-api
+    build:
+        context: src/
+        dockerfile: API/Dockerfile
+    environment:
+        ASPNETCORE_ENVIRONMENT: Docker
+    ports:
+      - 5034:80
+    depends_on:
+      - redis-cache
+
   redis-cache:
     image: redis:latest
     restart: always

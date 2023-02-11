@@ -1,13 +1,13 @@
 using gitViwe.Shared;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Distributed;
-using System.Text;
+using Shared;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddDistributedMemoryCache();
+builder.Services.AddTransient<IRedisDistributedCache, RedisDistributedCache>();
 builder.Services.AddStackExchangeRedisCache(options =>
 {
     options.Configuration = "localhost:6379";
@@ -28,24 +28,28 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapGet("/url/shorten", async ([FromServices] IDistributedCache redis, [FromServices] IHttpContextAccessor context, string url) =>
+app.MapGet("/url/shorten", async ([FromServices] IRedisDistributedCache redis, [FromServices] IHttpContextAccessor context, string url) =>
 {
-    string shortUrl = context.HttpContext!.Request.Host.Value + "/" + Conversion.RandomString(7);
+    string key = Conversion.RandomString(7);
+    string requestHost = context.HttpContext.Request.Host.Value;
+    string protocolScheme = context.HttpContext.Request.Scheme;
+    string shortUrl = $"{protocolScheme}{Uri.SchemeDelimiter}{requestHost}/url/get/{key}";
 
-    await redis.SetAsync(shortUrl, Encoding.UTF8.GetBytes(url), CancellationToken.None);
+    await redis.SetAsync(key, value: url);
 
-    return shortUrl;
+    return Results.Ok(new UrlShortenResponse(shortUrl, key, DateTime.UtcNow.AddMinutes(5)));
 })
 .WithName("ShortedUrl")
 .WithOpenApi();
 
-app.MapGet("/url/get-original", async ([FromServices] IDistributedCache redis, string shortUrl) =>
+app.MapGet("/url/get/{key}", async ([FromServices] IRedisDistributedCache redis, string key) =>
 {
-    var response = await redis.GetAsync(shortUrl, CancellationToken.None);
-
-    return Encoding.UTF8.GetString(response!);
+    string value = await redis.GetAsync(key);
+    return value;
 })
 .WithName("GetUrl")
 .WithOpenApi();
 
 app.Run();
+
+public record UrlShortenResponse(string ShortUri, string key, DateTime ValidUntil);
